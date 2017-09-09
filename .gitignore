@@ -53,3 +53,7 @@ dkms.conf
 
 # The executable
 ults
+
+# CLion files
+.idea/*
+cmake-build-debug/*
