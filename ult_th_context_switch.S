@@ -5,9 +5,9 @@
 # %rsi contains the context to switch to.
 #
 
-.globl _ult_context_switch, ult_context_switch
-_ult_context_switch:
-ult_context_switch:
+.globl _ult_th_context_switch, ult_th_context_switch
+_ult_th_context_switch:
+ult_th_context_switch:
 
   # Saves the context in the TCB
   mov     %rsp, 0x00(%rdi)

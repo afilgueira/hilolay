@@ -37,37 +37,37 @@ struct TCB {
 struct TCB ults[MAX_ULTS];
 struct TCB *current_ult;
 
-void ult_init(void);
-void ult_return(int ret);
-void ult_context_switch(struct CONTEXT *old, struct CONTEXT *new);
-bool ult_yield(void);
-int  ult_start(void (*f)(void));
+void ult_lib_init(void);
+void ult_th_return(int ret);
+void ult_th_context_switch(struct CONTEXT *old, struct CONTEXT *new);
+bool ult_th_yield(void);
+int  ult_th_start(void (*f)(void));
 
-static void ult_stop(void);
+static void ult_th_stop(void);
 
 
 // Initializes the ULT library
 // The first thread will be... your main function!
-void ult_init(void) {
+void ult_lib_init(void) {
   current_ult = &ults[0];
   current_ult->state = RUNNING;
 }
 
 // TODO: add doc (understand first :))
-void __attribute__((noreturn))ult_return(int ret) {
+void __attribute__((noreturn))ult_th_return(int ret) {
   if (current_ult != &ults[0]) {
     current_ult->state = EMPTY;
-    ult_yield();
+    ult_th_yield();
     assert(!"reachable");
   }
-  while (ult_yield());
+  while (ult_th_yield());
   exit(ret);
 }
 
 // Yields the CPU execution to the next thread
 // Returns true if the yielding was successful
 // Returns false if there's a single thread
-bool ult_yield(void) {
+bool ult_th_yield(void) {
   struct TCB *selected_ult;
   struct CONTEXT *old, *new;
 
@@ -91,18 +91,18 @@ bool ult_yield(void) {
   new = &selected_ult->context;
 
   current_ult = selected_ult;
-  ult_context_switch(old, new); // The infamous context switch
+  ult_th_context_switch(old, new); // The infamous context switch
 
   return true;
 }
 
 // Finishes an ult
-static void ult_stop(void) {
-  ult_return(0);
+static void ult_th_stop(void) {
+  ult_th_return(0);
 }
 
 // Starts an ult
-int ult_start(void (*f)(void)) {
+int ult_th_start(void (*f)(void)) {
   char *stack;
   struct TCB *new_ult;
 
@@ -120,7 +120,7 @@ int ult_start(void (*f)(void)) {
     return -1;
   }
 
-  *(uint64_t *)&stack[STACK_SIZE -  8] = (uint64_t)ult_stop;
+  *(uint64_t *)&stack[STACK_SIZE -  8] = (uint64_t)ult_th_stop;
   *(uint64_t *)&stack[STACK_SIZE - 16] = (uint64_t)f;
 
 
@@ -137,13 +137,13 @@ void test() {
     puts("soy un ult");
     printf("%d \n", i);
     sleep(1);
-    ult_yield();
+    ult_th_yield();
   }
 }
 
 int main(void) {
-  ult_init();
-  ult_start(test);
-  ult_start(test);
-  ult_return(0);
+  ult_lib_init();
+  ult_th_start(test);
+  ult_th_start(test);
+  ult_th_return(0);
 }

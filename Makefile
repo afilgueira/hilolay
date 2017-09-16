@@ -5,7 +5,7 @@ endif
 
 CFLAGS = $(APPLE_CCFLAGS) -g -Wall
 
-ults: ults.o ult_context_switch.o
+ults: ults.o ult_th_context_switch.o
 	$(CC) $(APPLE_CCFLGS) -o $@ $^
 
 .S.o:
