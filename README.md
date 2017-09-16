@@ -1,5 +1,5 @@
 # ULTs
-User level threads library (originally forked from https://github.com/mpu/gthreads
+User level threads library (originally forked from https://github.com/mpu/gthreads)
 
 ## How this works
 
