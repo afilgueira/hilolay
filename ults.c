@@ -56,6 +56,7 @@ bool ult_th_yield(void);
 int ult_th_start(void (*f)(void));
 static void ult_th_stop(void);
 int ult_th_get_tid(void);
+struct TCB* ult_lib_get_next_ult();
 
 // Helper functions
 void print_error(char *);
@@ -86,15 +87,11 @@ bool ult_th_yield(void) {
     struct TCB *selected_ult;
     struct CONTEXT *old, *new;
 
-    selected_ult = current_ult;
-    while (selected_ult->state != READY) { // Search for next ready ult
-        if (++selected_ult == &ults[MAX_ULTS]) {
-            selected_ult = &ults[0];
-        }
+    selected_ult = ult_lib_get_next_ult();
 
-        if (selected_ult == current_ult) {
-            return false;
-        }
+    // there's not other ULT to schedule
+    if (selected_ult == current_ult) {
+        return false;
     }
 
     if (current_ult->state != EMPTY) { // Running ULT is flagged as Ready
@@ -109,6 +106,22 @@ bool ult_th_yield(void) {
     ult_th_context_switch(old, new); // The infamous context switch
 
     return true;
+}
+
+// Returns the next TCB, based on the scheduling algorithm
+struct TCB* ult_lib_get_next_ult() {
+    struct TCB *selected_ult = current_ult;
+    while (selected_ult->state != READY) { // Search for next ready ult
+        if (++selected_ult == &ults[MAX_ULTS]) {
+            selected_ult = &ults[0];
+        }
+
+        if (selected_ult == current_ult) {
+            // We don't have other ULTs to schedule, so let's continue with the same
+            break;
+        }
+    }
+    return selected_ult;
 }
 
 // Finishes an ult
