@@ -1,18 +1,18 @@
 # Threadminator
 
-Tiny user level threads library, for education purposes. The library names are based on T1000, but I expect to find a better name soon.0
+Tiny user level threads library, for education purposes. The library names are based on T1000, but I expect to find a better name soon :)
 
 ## How can I run it?
 
 - CLion: Import the project and take advantage of the "new" makefile format. Run -> run 'ults'
-- Your favorite editor: Just code, and run `make clean && make`. Then, ./ults
+- Your favorite editor: Just code, and run `make clean && make`. Then `./ults`
 
 ## Project structure
 
 This is still a little green (pun intended), but for now:
-- ults.c is the main project
-- ult1000_th_context_switch.S is an assembly function that switches the context between two ULTs.
-- threadminator/threadminator.c is the actual library. It's supposed to contain all the code related to ULTs administration. The naming convention is `ult1000_func` for functions related to the library behavior, and `ult1000_th_func` for thread functions.
+- `ults.c` is the main project
+- `ult1000_th_context_switch.S` is an assembly function that switches the context between two ULTs.
+- `threadminator/threadminator.c` is the actual library. It's supposed to contain all the code related to ULTs administration. The naming convention is `ult1000_func` for functions related to the library behavior, and `ult1000_th_func` for thread functions. I'm eager to find a better one, submit an issue!
 
 A small example of code:
 
