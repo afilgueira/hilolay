@@ -1,13 +1,13 @@
 #
-# ULTs context switch.
+# Threadminator ULTs context switch.
 #
 # %rdi contains the current context structure.
 # %rsi contains the context to switch to.
 #
 
-.globl _ult_th_context_switch, ult_th_context_switch
-_ult_th_context_switch:
-ult_th_context_switch:
+.globl _ult1000_th_context_switch, ult1000_th_context_switch
+_ult1000_th_context_switch:
+ult1000_th_context_switch:
 
   # Saves the context in the TCB
   mov     %rsp, 0x00(%rdi)
