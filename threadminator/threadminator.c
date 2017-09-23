@@ -6,16 +6,21 @@ void ult1000_init(void) {
     current_ult = &ults[0];
     current_ult->state = RUNNING;
     current_ult->id = MAIN_THREAD_ID;
+    ult1000_round_robin_init();
 }
 
 /* __attribute__((noreturn)) tells the compiler that this function won't return
  * in order to avoid compilation warnings */
 void __attribute__((noreturn)) ult1000_th_return(int ret) {
-    if (current_ult != &ults[0]) {
+    if (!ult1000_is_main_thread(current_ult)) {
         current_ult->state = FREE;
         ult1000_th_yield();
+
+        /* This line should never be reached. If that's the case, there's a bug */
         assert(!"reachable");
     }
+
+    /* Yields the CPU until there are no more threads */
     while (ult1000_th_yield());
     exit(ret);
 }
@@ -66,6 +71,7 @@ struct TCB* ult1000_get_next_ult() {
 
 /* Finishes an ult */
 static void ult1000_th_stop(void) {
+    ult1000_log("Finalizando hilo");
     ult1000_th_return(0);
 }
 
@@ -96,12 +102,33 @@ int ult1000_th_create(void (*f)(void)) {
     new_ult->state = READY; /* The new ult is Ready */
     new_ult->id = NEXT_ID++;
 
+    ult1000_log("cree un hilo");
     if(SCHEDULE_IMMEDIATELY) {
-        ult1000_log("cree un hilo");
         ult1000_th_yield();
     }
 
     return 0;
+}
+
+/* Initializes the library to listen SIGALRM */
+void ult1000_round_robin_init() {
+    struct sigaction new_action;
+    /* Set up the structure to specify the new action. */
+    new_action.sa_handler = ult1000_end_of_quantum_handler;
+    sigemptyset(&new_action.sa_mask);
+    new_action.sa_flags = SA_NODEFER;
+    sigaction(SIGALRM, &new_action, 0);
+
+    /* If QUANTUM = 0 the alarm is disabled */
+    alarm(QUANTUM);
+}
+
+/* Handles the end of a quantum */
+void ult1000_end_of_quantum_handler() {
+    printf("Soy el ult %d haciendo switch \n", ult1000_th_get_tid());
+    alarm(QUANTUM);
+    ult1000_th_yield();
+    printf("Reiniciando el ult %d\n", ult1000_th_get_tid());
 }
 
 /* Returns the running thread id */
@@ -114,4 +141,9 @@ void ult1000_log(char *message) {
     if (VERBOSE) {
         printf("\n** %s **\n\n", message);
     }
+}
+
+/* Checks if a ult is the main thread */
+bool ult1000_is_main_thread(struct TCB* ult) {
+    return ult == &ults[0];
 }

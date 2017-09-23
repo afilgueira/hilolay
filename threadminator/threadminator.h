@@ -1,8 +1,9 @@
 #ifndef ULTS_THREADMINATOR_H
 #define ULTS_THREADMINATOR_H
 
-#include <stdbool.h>
 #include <assert.h>
+#include <signal.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -19,6 +20,9 @@
 
 /* The "main thread" ID */
 #define MAIN_THREAD_ID 0
+
+/* Round Robin Quantum (in seconds) - 0 => No Round Robin */
+#define QUANTUM 1
 
 /* ID for a new ULT */
 static int NEXT_ID = 1;
@@ -74,9 +78,12 @@ bool ult1000_th_yield(void);
 int ult1000_th_create(void (*f)(void));
 static void ult1000_th_stop(void);
 int ult1000_th_get_tid(void);
-struct TCB* ult1000_get_next_ult();
+struct TCB* ult1000_get_next_ult(void);
+void ult1000_round_robin_init(void);
+void ult1000_end_of_quantum_handler(void);
 
 /* Helper functions */
 void ult1000_log(char *);
+bool ult1000_is_main_thread(struct TCB*);
 
 #endif /* ULTS_THREADMINATOR_H */

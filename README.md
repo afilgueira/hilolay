@@ -13,7 +13,7 @@ This is still a little green (pun intended), but for now:
 - `ults.c` is the main project
 - `ult1000_th_context_switch.S` is an assembly function that switches the context between two ULTs.
 - `threadminator/threadminator.c` is the actual library. It's supposed to contain all the code related to ULTs administration. The naming convention is `ult1000_func` for functions related to the library behavior, and `ult1000_th_func` for thread functions. I'm eager to find a better one, submit an issue!
-- To document the code, please use /* */. To comment a few lines, please use // (and explain why is commented).
+- To document the code, please use `/* */`. To comment a few lines, please use `//` (and explain why is commented).
 
 A small example of code:
 
