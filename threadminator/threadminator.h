@@ -46,15 +46,18 @@ struct CONTEXT {
     uint64_t rbp;
 };
 
+/* The possible states of a ULT */
+enum State {
+    FREE, // Free ULT - These TCB's are created at the beginning of the execution and assigned on demand
+    RUNNING, // Running ULT
+    READY, // Ready ULT
+};
+
 /* The TCB structure */
 struct TCB {
     int id;
     struct CONTEXT context;
-    enum {
-        FREE, // Free ULT - These TCB's are created at the beginning of the execution and assigned on demand
-        RUNNING, // Running ULT
-        READY, // Ready ULT
-    } state;
+    enum State state;
     struct TCB *next;
 };
 
@@ -78,6 +81,7 @@ bool ult1000_th_yield(void);
 int ult1000_th_create(void (*f)(void));
 static void ult1000_th_stop(void);
 int ult1000_th_get_tid(void);
+void ult1000_write_TCB(struct TCB* , int, enum State);
 struct TCB* ult1000_get_next_ult(void);
 void ult1000_enqueue(struct TCB *);
 void ult1000_round_robin_init(void);

@@ -4,9 +4,7 @@
  * The first thread will be... your main function! */
 void ult1000_init(void) {
     current_ult = &ults[0];
-    current_ult->state = RUNNING;
-    current_ult->id = MAIN_THREAD_ID;
-    current_ult->next = NULL;
+    ult1000_write_TCB(current_ult, MAIN_THREAD_ID, RUNNING);
     ult1000_round_robin_init();
 }
 
@@ -97,10 +95,7 @@ int ult1000_th_create(void (*f)(void)) {
     *(uint64_t *) &stack[STACK_SIZE - 16] = (uint64_t) f;
 
     new_ult->context.rsp = (uint64_t) &stack[STACK_SIZE - 16]; /* Sets the stack pointer */
-    new_ult->state = READY; /* The new ult is Ready */
-    new_ult->id = NEXT_ID++;
-    new_ult->next = NULL;
-
+    ult1000_write_TCB(new_ult, NEXT_ID++, READY);
     ult1000_enqueue(new_ult);
 
     ult1000_log("cree un hilo");
@@ -156,6 +151,13 @@ void ult1000_end_of_quantum_handler() {
 /* Returns the running thread id */
 int ult1000_th_get_tid(void) {
     return current_ult->id;
+}
+
+/* Writes administrative info of a TCB */
+void ult1000_write_TCB(struct TCB* tcb, int id, enum State state) {
+    tcb->state = state;
+    tcb->id = id;
+    tcb->next = NULL;
 }
 
 /* Prints a message */
