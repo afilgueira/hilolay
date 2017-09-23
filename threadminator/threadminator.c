@@ -6,6 +6,7 @@ void ult1000_init(void) {
     current_ult = &ults[0];
     current_ult->state = RUNNING;
     current_ult->id = MAIN_THREAD_ID;
+    current_ult->next = NULL;
     ult1000_round_robin_init();
 }
 
@@ -35,12 +36,12 @@ bool ult1000_th_yield(void) {
     selected_ult = ult1000_get_next_ult();
 
     /* there's not other ULT to schedule */
-    if (selected_ult == current_ult) {
+    if (selected_ult == NULL) {
         return false;
     }
 
     if (current_ult->state != FREE) { /* Running ULT is flagged as Ready */
-        current_ult->state = READY;
+        ult1000_enqueue(current_ult);
     }
     selected_ult->state = RUNNING; /* Selected ULT is flagged as Running */
 
@@ -55,17 +56,14 @@ bool ult1000_th_yield(void) {
 
 /* Returns the next TCB, based on the scheduling algorithm */
 struct TCB* ult1000_get_next_ult() {
-    struct TCB *selected_ult = current_ult;
-    while (selected_ult->state != READY) { /* Search for next ready ult */
-        if (++selected_ult == &ults[MAX_ULTS]) {
-            selected_ult = &ults[0];
-        }
+    /* Gets the first */
+    struct TCB *selected_ult = READY_QUEUE_HEAD;
 
-        if (selected_ult == current_ult) {
-            /* We don't have other ULTs to schedule, so let's continue with the same */
-            break;
-        }
+    /* If the queue is not empty, the new head is tne second element */
+    if(READY_QUEUE_HEAD != NULL) {
+        READY_QUEUE_HEAD = READY_QUEUE_HEAD->next;
     }
+
     return selected_ult;
 }
 
@@ -101,6 +99,9 @@ int ult1000_th_create(void (*f)(void)) {
     new_ult->context.rsp = (uint64_t) &stack[STACK_SIZE - 16]; /* Sets the stack pointer */
     new_ult->state = READY; /* The new ult is Ready */
     new_ult->id = NEXT_ID++;
+    new_ult->next = NULL;
+
+    ult1000_enqueue(new_ult);
 
     ult1000_log("cree un hilo");
     if(SCHEDULE_IMMEDIATELY) {
@@ -110,14 +111,35 @@ int ult1000_th_create(void (*f)(void)) {
     return 0;
 }
 
+/* Enqueues the sent TCB */
+void ult1000_enqueue(struct TCB* ult) {
+    ult->state = READY;
+
+    /* If there are no ready ULTs */
+    if(READY_QUEUE_HEAD == NULL) {
+        READY_QUEUE_HEAD = ult;
+    }
+
+    /* If there is already a last ULT */
+    if(READY_QUEUE_TAIL != NULL) {
+        READY_QUEUE_TAIL->next = ult;
+    }
+
+    /* ULT is now the last, and the next is NULL */
+    READY_QUEUE_TAIL = ult;
+    READY_QUEUE_TAIL->next = NULL;
+}
+
 /* Initializes the library to listen SIGALRM */
 void ult1000_round_robin_init() {
-    struct sigaction new_action;
-    /* Set up the structure to specify the new action. */
-    new_action.sa_handler = ult1000_end_of_quantum_handler;
-    sigemptyset(&new_action.sa_mask);
-    new_action.sa_flags = SA_NODEFER;
-    sigaction(SIGALRM, &new_action, 0);
+    struct sigaction action;
+
+    /* Set up the structure to specify the action. */
+    action.sa_handler = ult1000_end_of_quantum_handler;
+    action.sa_flags = SA_NODEFER;
+    sigemptyset(&action.sa_mask);
+
+    sigaction(SIGALRM, &action, 0);
 
     /* If QUANTUM = 0 the alarm is disabled */
     alarm(QUANTUM);

@@ -2,7 +2,7 @@
 
 /* Now, let's run some simple threaded code. */
 void test() {
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 20; i++) {
         int tid = ult1000_th_get_tid();
         printf("Soy el ult %d mostrando el numero %d \n", tid, i);
         usleep(5000 * i * tid); /* Randomizes the sleep, so it gets larger after a few iterations */

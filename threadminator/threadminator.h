@@ -72,18 +72,19 @@ static struct TCB *READY_QUEUE_TAIL = NULL;
 
 /* Lib functions */
 void ult1000_init(void);
-void ult1000_th_return(int ret);
-void ult1000_th_context_switch(struct CONTEXT *old, struct CONTEXT *new);
+void ult1000_th_return(int);
+void ult1000_th_context_switch(struct CONTEXT *, struct CONTEXT *);
 bool ult1000_th_yield(void);
 int ult1000_th_create(void (*f)(void));
 static void ult1000_th_stop(void);
 int ult1000_th_get_tid(void);
 struct TCB* ult1000_get_next_ult(void);
+void ult1000_enqueue(struct TCB *);
 void ult1000_round_robin_init(void);
 void ult1000_end_of_quantum_handler(void);
 
 /* Helper functions */
 void ult1000_log(char *);
-bool ult1000_is_main_thread(struct TCB*);
+bool ult1000_is_main_thread(struct TCB *);
 
 #endif /* ULTS_THREADMINATOR_H */
