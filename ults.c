@@ -1,15 +1,13 @@
 #include "threadminator/threadminator.h"
 
-
 // Now, let's run some simple threaded code.
 void test() {
     for (int i = 0; i < 10; i++) {
         printf("Soy el ult %d mostrando el numero %d \n", ult1000_th_get_tid(), i);
-        usleep(500);
+        usleep(500*1000);
         ult1000_th_yield();
     }
 }
-
 
 int main(void) {
     ult1000_init();

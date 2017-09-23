@@ -8,10 +8,11 @@ void ult1000_init(void) {
     current_ult->id = MAIN_THREAD_ID;
 }
 
-// TODO: add doc (understand first :))
+// __attribute__((noreturn)) tells the compiler that this function won't return
+// in order to avoid compilation warnings
 void __attribute__((noreturn)) ult1000_th_return(int ret) {
     if (current_ult != &ults[0]) {
-        current_ult->state = EMPTY;
+        current_ult->state = FREE;
         ult1000_th_yield();
         assert(!"reachable");
     }
@@ -33,7 +34,7 @@ bool ult1000_th_yield(void) {
         return false;
     }
 
-    if (current_ult->state != EMPTY) { // Running ULT is flagged as Ready
+    if (current_ult->state != FREE) { // Running ULT is flagged as Ready
         current_ult->state = READY;
     }
     selected_ult->state = RUNNING; // Selected ULT is flagged as Running
@@ -75,28 +76,28 @@ int ult1000_th_create(void (*f)(void)) {
 
     for (new_ult = &ults[0];; new_ult++) {
         if (new_ult == &ults[MAX_ULTS]) {
-            print_error("Cannot create a new ULTs!");
+            ult1000_log("Cannot create a new ULTs!");
             return ERROR_TOO_MANY_ULTS;
-        } else if (new_ult->state == EMPTY) {
+        } else if (new_ult->state == FREE) {
             break;
         }
     }
 
     stack = malloc(STACK_SIZE);
     if (!stack) { // No memory :(
-        print_error("Not enough memory to create a new stack :(");
+        ult1000_log("Not enough memory to create a new stack :(");
         return -1;
     }
 
     *(uint64_t *) &stack[STACK_SIZE - 8] = (uint64_t) ult1000_th_stop;
     *(uint64_t *) &stack[STACK_SIZE - 16] = (uint64_t) f;
 
-
     new_ult->context.rsp = (uint64_t) &stack[STACK_SIZE - 16]; // Sets the stack pointer
     new_ult->state = READY; // The new ult is Ready
     new_ult->id = NEXT_ID++;
 
     if(SCHEDULE_IMMEDIATELY) {
+        ult1000_log("cree un hilo");
         ult1000_th_yield();
     }
 
@@ -107,7 +108,9 @@ int ult1000_th_get_tid(void) {
     return current_ult->id;
 }
 
-// Prints a formatted error
-void print_error(char* error) {
-    printf("\n** %s **\n\n", error);
+// Prints a message
+void ult1000_log(char *message) {
+    if (VERBOSE) {
+        printf("\n** %s **\n\n", message);
+    }
 }

@@ -39,6 +39,7 @@ int main(void) {
 }
 
 ```
+The code of the library is well documented, but please consider adding whatever you feel it's needed
 
 ## Contribute
 

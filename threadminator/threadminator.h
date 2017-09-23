@@ -1,7 +1,3 @@
-//
-// Created by adro on 16/09/17.
-//
-
 #ifndef ULTS_THREADMINATOR_H
 #define ULTS_THREADMINATOR_H
 
@@ -15,10 +11,13 @@
 // Error code sent when you cannot create more ULTs
 static const int ERROR_TOO_MANY_ULTS = -1;
 
-// If this option is true, the threads will start executing immediately after being created
+// To make the threads start executing immediately after being created
 static const bool SCHEDULE_IMMEDIATELY = true;
 
-// The main thread ID
+// To print in stdin the messages sent to "log" function
+static const bool VERBOSE = true;
+
+// The "main thread" ID
 static const int MAIN_THREAD_ID = 0;
 
 // ID for a new ULT
@@ -46,7 +45,7 @@ struct TCB {
     int id;
     struct CONTEXT context;
     enum {
-        EMPTY, // Empty ULT - These TCB's are created at the beginning of the execution and assigned on demand
+        FREE, // Free ULT - These TCB's are created at the beginning of the execution and assigned on demand
         RUNNING, // Running ULT
         READY, // Ready ULT
     } state;
@@ -66,6 +65,6 @@ int ult1000_th_get_tid(void);
 struct TCB* ult1000_get_next_ult();
 
 // Helper functions
-void print_error(char *);
+void ult1000_log(char *);
 
 #endif //ULTS_THREADMINATOR_H
