@@ -7,6 +7,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 #include <unistd.h>
 
 /* Error code sent when you cannot create more ULTs */
@@ -22,7 +23,7 @@
 #define MAIN_THREAD_ID 0
 
 /* Round Robin Quantum (in seconds) - 0 => No Round Robin */
-#define QUANTUM 1
+#define QUANTUM 2
 
 /* ID for a new ULT */
 static int NEXT_ID = 1;
@@ -59,6 +60,9 @@ struct TCB {
     struct CONTEXT context;
     enum State state;
     struct TCB *next;
+    int burst_start;
+    int last_burst;
+    int execution_time;
 };
 
 /* TCBs container */
@@ -90,5 +94,7 @@ void ult1000_end_of_quantum_handler(void);
 /* Helper functions */
 void ult1000_log(char *);
 bool ult1000_is_main_thread(struct TCB *);
+int ult1000_get_time();
+void ult1000_summarize_burst();
 
 #endif /* ULTS_THREADMINATOR_H */

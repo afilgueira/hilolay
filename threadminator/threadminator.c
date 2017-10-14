@@ -5,6 +5,7 @@
 void ult1000_init(void) {
     current_ult = &ults[0];
     ult1000_write_TCB(current_ult, MAIN_THREAD_ID, RUNNING);
+    current_ult->burst_start = ult1000_get_time();
     ult1000_round_robin_init();
 }
 
@@ -41,7 +42,10 @@ bool ult1000_th_yield(void) {
     if (current_ult->state != FREE) { /* Running ULT is flagged as Ready */
         ult1000_enqueue(current_ult);
     }
+    ult1000_summarize_burst();
+
     selected_ult->state = RUNNING; /* Selected ULT is flagged as Running */
+    selected_ult->burst_start = ult1000_get_time();
 
     old = &current_ult->context;
     new = &selected_ult->context;
@@ -67,7 +71,9 @@ struct TCB* ult1000_get_next_ult() {
 
 /* Finishes an ult */
 static void ult1000_th_stop(void) {
-    ult1000_log("Finalizando hilo");
+    ult1000_summarize_burst();
+    printf("I am ult number %d. Total execution time: %d. Last burst: %d\n", ult1000_th_get_tid(), current_ult->execution_time, current_ult->last_burst);
+    ult1000_log("Finishing thread");
     ult1000_th_return(0);
 }
 
@@ -98,7 +104,7 @@ int ult1000_th_create(void (*f)(void)) {
     ult1000_write_TCB(new_ult, NEXT_ID++, READY);
     ult1000_enqueue(new_ult);
 
-    ult1000_log("cree un hilo");
+    ult1000_log("New thread was created");
     if(SCHEDULE_IMMEDIATELY) {
         ult1000_th_yield();
     }
@@ -127,6 +133,8 @@ void ult1000_enqueue(struct TCB* ult) {
 
 /* Initializes the library to listen SIGALRM */
 void ult1000_round_robin_init() {
+    if(QUANTUM == 0) return;
+
     struct sigaction action;
 
     /* Set up the structure to specify the action. */
@@ -142,10 +150,10 @@ void ult1000_round_robin_init() {
 
 /* Handles the end of a quantum */
 void ult1000_end_of_quantum_handler() {
-    printf("Soy el ult %d haciendo switch \n", ult1000_th_get_tid());
+    printf("I am ult number %d switching context \n", ult1000_th_get_tid());
     alarm(QUANTUM);
     ult1000_th_yield();
-    printf("Reiniciando el ult %d\n", ult1000_th_get_tid());
+    printf("Restarting ult number %d\n", ult1000_th_get_tid());
 }
 
 /* Returns the running thread id */
@@ -158,6 +166,9 @@ void ult1000_write_TCB(struct TCB* tcb, int id, enum State state) {
     tcb->state = state;
     tcb->id = id;
     tcb->next = NULL;
+    tcb->burst_start = 0;
+    tcb->last_burst = 0;
+    tcb->execution_time = 0;
 }
 
 /* Prints a message */
@@ -170,4 +181,15 @@ void ult1000_log(char *message) {
 /* Checks if a ult is the main thread */
 bool ult1000_is_main_thread(struct TCB* ult) {
     return ult == &ults[0];
+}
+
+/* Returns current time */
+int ult1000_get_time() {
+    return (int)time(NULL);
+}
+
+void ult1000_summarize_burst() {
+    int last_burst = ult1000_get_time() - current_ult->burst_start;
+    current_ult->execution_time += last_burst;
+    current_ult->last_burst = last_burst;
 }
