@@ -4,6 +4,7 @@
  * The first thread will be... your main function! */
 void ult1000_init(void) {
     current_ult = &ults[0];
+    current_ult->context = malloc(sizeof(ucontext_t));
     ult1000_write_TCB(current_ult, MAIN_THREAD_ID, RUNNING);
     current_ult->burst_start = ult1000_get_time();
     ult1000_round_robin_init();
@@ -30,7 +31,7 @@ void __attribute__((noreturn)) ult1000_th_return(int ret) {
  * Returns false if there's a single thread */
 bool ult1000_th_yield(void) {
     struct TCB *selected_ult;
-    struct CONTEXT *old, *new;
+    ucontext_t *old, *new;
 
     selected_ult = ult1000_get_next_ult();
 
@@ -47,11 +48,11 @@ bool ult1000_th_yield(void) {
     selected_ult->state = RUNNING; /* Selected ULT is flagged as Running */
     selected_ult->burst_start = ult1000_get_time();
 
-    old = &current_ult->context;
-    new = &selected_ult->context;
+    old = current_ult->context;
+    new = selected_ult->context;
 
     current_ult = selected_ult;
-    ult1000_th_context_switch(old, new); /* The infamous context switch */
+    swapcontext(old, new); /* The infamous context switch */
 
     return true;
 }
@@ -77,9 +78,14 @@ static void ult1000_th_stop(void) {
     ult1000_th_return(0);
 }
 
+/* Wraps the code of the thread in order to summarize its info before it actually finishes */
+void ult1000_th_wrapper(void (*ult_function)(void)) {
+    ult_function();
+    ult1000_th_stop();
+}
+
 /* Starts an ult */
 int ult1000_th_create(void (*f)(void)) {
-    char *stack;
     struct TCB *new_ult;
 
     for (new_ult = &ults[0];; new_ult++) {
@@ -91,16 +97,7 @@ int ult1000_th_create(void (*f)(void)) {
         }
     }
 
-    stack = malloc(STACK_SIZE);
-    if (!stack) { /* No memory :( */
-        ult1000_log("Not enough memory to create a new stack :(");
-        return -1;
-    }
-
-    *(uint64_t *) &stack[STACK_SIZE - 8] = (uint64_t) ult1000_th_stop;
-    *(uint64_t *) &stack[STACK_SIZE - 16] = (uint64_t) f;
-
-    new_ult->context.rsp = (uint64_t) &stack[STACK_SIZE - 16]; /* Sets the stack pointer */
+    ult1000_th_create_context(new_ult, f);
     ult1000_write_TCB(new_ult, NEXT_ID++, READY);
     ult1000_enqueue(new_ult);
 
@@ -110,6 +107,19 @@ int ult1000_th_create(void (*f)(void)) {
     }
 
     return 0;
+}
+
+/* Creates the context of a new thread */
+void ult1000_th_create_context(struct TCB* new_ult, void (*f)(void)) {
+    new_ult->context = malloc(sizeof(ucontext_t));
+
+    // Gets the current context as a reference, to be overridden
+    getcontext(new_ult->context);
+
+    new_ult->context->uc_link = 0;
+    new_ult->context->uc_stack.ss_sp = malloc(STACK_SIZE);
+    new_ult->context->uc_stack.ss_size = STACK_SIZE;
+    makecontext(new_ult->context, (void*)&ult1000_th_wrapper, 1, f);
 }
 
 /* Enqueues the sent TCB */
@@ -138,7 +148,7 @@ void ult1000_round_robin_init() {
     struct sigaction action;
 
     /* Set up the structure to specify the action. */
-    action.sa_handler = ult1000_end_of_quantum_handler;
+    action.sa_handler = (void*) ult1000_end_of_quantum_handler;
     action.sa_flags = SA_NODEFER;
     sigemptyset(&action.sa_mask);
 
@@ -188,6 +198,7 @@ int ult1000_get_time() {
     return (int)time(NULL);
 }
 
+/* Saves a summary of the next burst */
 void ult1000_summarize_burst() {
     int last_burst = ult1000_get_time() - current_ult->burst_start;
     current_ult->execution_time += last_burst;

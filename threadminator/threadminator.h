@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <ucontext.h>
 #include <unistd.h>
 
 /* Error code sent when you cannot create more ULTs */
@@ -34,19 +35,6 @@ enum {
     STACK_SIZE = 0x400000,
 };
 
-/* The registers RBX, RBP, RDI, RSI, RSP, R12, R13, R14, and R15
- * are considered nonvolatile and must be saved and restored by a function that uses them.
- */
-struct CONTEXT {
-    uint64_t rsp; /* Stack pointer */
-    uint64_t r15 ;
-    uint64_t r14;
-    uint64_t r13;
-    uint64_t r12;
-    uint64_t rbx;
-    uint64_t rbp;
-};
-
 /* The possible states of a ULT */
 enum State {
     FREE, // Free ULT - These TCB's are created at the beginning of the execution and assigned on demand
@@ -57,7 +45,7 @@ enum State {
 /* The TCB structure */
 struct TCB {
     int id;
-    struct CONTEXT context;
+    ucontext_t* context;
     enum State state;
     struct TCB *next;
     int burst_start;
@@ -80,12 +68,13 @@ static struct TCB *READY_QUEUE_TAIL = NULL;
 /* Lib functions */
 void ult1000_init(void);
 void ult1000_th_return(int);
-void ult1000_th_context_switch(struct CONTEXT *, struct CONTEXT *);
 bool ult1000_th_yield(void);
 int ult1000_th_create(void (*f)(void));
+void ult1000_th_create_context(struct TCB* new_ult, void (*f)(void));
 static void ult1000_th_stop(void);
+void ult1000_th_wrapper(void (*f)(void));
 int ult1000_th_get_tid(void);
-void ult1000_write_TCB(struct TCB* , int, enum State);
+void ult1000_write_TCB(struct TCB*, int, enum State);
 struct TCB* ult1000_get_next_ult(void);
 void ult1000_enqueue(struct TCB *);
 void ult1000_round_robin_init(void);
