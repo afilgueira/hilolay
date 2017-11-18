@@ -1,5 +1,5 @@
-#ifndef ULTS_THREADMINATOR_H
-#define ULTS_THREADMINATOR_H
+#ifndef HILOLAY_H
+#define HILOLAY_H
 
 #include <assert.h>
 #include <signal.h>
@@ -31,7 +31,7 @@ static int NEXT_ID = 1;
 
 /* Config options */
 enum {
-    MAX_ULTS = 50,
+    MAX_ULTS = 5000,
     STACK_SIZE = 0x400000,
 };
 
@@ -66,24 +66,24 @@ static struct TCB *READY_QUEUE_HEAD = NULL;
 static struct TCB *READY_QUEUE_TAIL = NULL;
 
 /* Lib functions */
-void ult1000_init(void);
-void ult1000_th_return(int);
-bool ult1000_th_yield(void);
-int ult1000_th_create(void (*f)(void));
-void ult1000_th_create_context(struct TCB* new_ult, void (*f)(void));
-static void ult1000_th_stop(void);
-void ult1000_th_wrapper(void (*f)(void));
-int ult1000_th_get_tid(void);
-void ult1000_write_TCB(struct TCB*, int, enum State);
-struct TCB* ult1000_get_next_ult(void);
-void ult1000_enqueue(struct TCB *);
-void ult1000_round_robin_init(void);
-void ult1000_end_of_quantum_handler(void);
+void lib_init(void);
+void th_return(int);
+bool th_yield(void);
+int th_create(void (*f)(void));
+void th_create_context(struct TCB* new_ult, void (*f)(void));
+static void th_stop(void);
+void th_wrapper(void (*f)(void));
+int th_get_tid(void);
+void lib_write_TCB(struct TCB*, int, enum State);
+struct TCB* lib_get_next_ult(void);
+void lib_enqueue(struct TCB *);
+void lib_round_robin_init(void);
+void lib_end_of_quantum_handler(void);
 
 /* Helper functions */
-void ult1000_log(char *);
-bool ult1000_is_main_thread(struct TCB *);
-int ult1000_get_time();
-void ult1000_summarize_burst();
+void lib_log(char *);
+bool lib_is_main_thread(struct TCB *);
+int lib_get_time();
+void lib_summarize_burst();
 
-#endif /* ULTS_THREADMINATOR_H */
+#endif /* HILOLAY_H */

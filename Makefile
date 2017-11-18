@@ -1,6 +1,6 @@
 CFLAGS = -g -Wall
 
-ults: threadminator/threadminator.c ults.o $@ $^
+ults: hilolay/hilolay.c ults.o $@ $^
 
 .PHONY: clean
 clean:

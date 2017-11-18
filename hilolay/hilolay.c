@@ -1,39 +1,39 @@
-#include "threadminator.h"
+#include "hilolay.h"
 
 /* Initializes the ULT library
  * The first thread will be... your main function! */
-void ult1000_init(void) {
+void lib_init(void) {
     current_ult = &ults[0];
     current_ult->context = malloc(sizeof(ucontext_t));
-    ult1000_write_TCB(current_ult, MAIN_THREAD_ID, RUNNING);
-    current_ult->burst_start = ult1000_get_time();
-    ult1000_round_robin_init();
+    lib_write_TCB(current_ult, MAIN_THREAD_ID, RUNNING);
+    current_ult->burst_start = lib_get_time();
+    lib_round_robin_init();
 }
 
 /* __attribute__((noreturn)) tells the compiler that this function won't return
  * in order to avoid compilation warnings */
-void __attribute__((noreturn)) ult1000_th_return(int ret) {
-    if (!ult1000_is_main_thread(current_ult)) {
+void __attribute__((noreturn)) th_return(int ret) {
+    if (!lib_is_main_thread(current_ult)) {
         current_ult->state = FREE;
-        ult1000_th_yield();
+        th_yield();
 
         /* This line should never be reached. If that's the case, there's a bug */
         assert(!"reachable");
     }
 
     /* Yields the CPU until there are no more threads */
-    while (ult1000_th_yield());
+    while (th_yield());
     exit(ret);
 }
 
 /* Yields the CPU execution to the next thread
  * Returns true if the yielding was successful
  * Returns false if there's a single thread */
-bool ult1000_th_yield(void) {
+bool th_yield(void) {
     struct TCB *selected_ult;
     ucontext_t *old, *new;
 
-    selected_ult = ult1000_get_next_ult();
+    selected_ult = lib_get_next_ult();
 
     /* there's not other ULT to schedule */
     if (selected_ult == NULL) {
@@ -41,12 +41,12 @@ bool ult1000_th_yield(void) {
     }
 
     if (current_ult->state != FREE) { /* Running ULT is flagged as Ready */
-        ult1000_enqueue(current_ult);
+        lib_enqueue(current_ult);
     }
-    ult1000_summarize_burst();
+    lib_summarize_burst();
 
     selected_ult->state = RUNNING; /* Selected ULT is flagged as Running */
-    selected_ult->burst_start = ult1000_get_time();
+    selected_ult->burst_start = lib_get_time();
 
     old = current_ult->context;
     new = selected_ult->context;
@@ -58,7 +58,7 @@ bool ult1000_th_yield(void) {
 }
 
 /* Returns the next TCB, based on the scheduling algorithm */
-struct TCB* ult1000_get_next_ult() {
+struct TCB* lib_get_next_ult() {
     /* Gets the first */
     struct TCB *selected_ult = READY_QUEUE_HEAD;
 
@@ -71,46 +71,46 @@ struct TCB* ult1000_get_next_ult() {
 }
 
 /* Finishes an ult */
-static void ult1000_th_stop(void) {
-    ult1000_summarize_burst();
-    printf("I am ult number %d. Total execution time: %d. Last burst: %d\n", ult1000_th_get_tid(), current_ult->execution_time, current_ult->last_burst);
-    ult1000_log("Finishing thread");
-    ult1000_th_return(0);
+static void th_stop(void) {
+    lib_summarize_burst();
+    printf("I am ult number %d. Total execution time: %d. Last burst: %d\n", th_get_tid(), current_ult->execution_time, current_ult->last_burst);
+    lib_log("Finishing thread");
+    th_return(0);
 }
 
 /* Wraps the code of the thread in order to summarize its info before it actually finishes */
-void ult1000_th_wrapper(void (*ult_function)(void)) {
+void th_wrapper(void (*ult_function)(void)) {
     ult_function();
-    ult1000_th_stop();
+    th_stop();
 }
 
 /* Starts an ult */
-int ult1000_th_create(void (*f)(void)) {
+int th_create(void (*f)(void)) {
     struct TCB *new_ult;
 
     for (new_ult = &ults[0];; new_ult++) {
         if (new_ult == &ults[MAX_ULTS]) {
-            ult1000_log("Cannot create a new ULTs!");
+            lib_log("Cannot create a new ULTs!");
             return ERROR_TOO_MANY_ULTS;
         } else if (new_ult->state == FREE) {
             break;
         }
     }
 
-    ult1000_th_create_context(new_ult, f);
-    ult1000_write_TCB(new_ult, NEXT_ID++, READY);
-    ult1000_enqueue(new_ult);
+    th_create_context(new_ult, f);
+    lib_write_TCB(new_ult, NEXT_ID++, READY);
+    lib_enqueue(new_ult);
 
-    ult1000_log("New thread was created");
+    lib_log("New thread was created");
     if(SCHEDULE_IMMEDIATELY) {
-        ult1000_th_yield();
+        th_yield();
     }
 
     return 0;
 }
 
 /* Creates the context of a new thread */
-void ult1000_th_create_context(struct TCB* new_ult, void (*f)(void)) {
+void th_create_context(struct TCB* new_ult, void (*f)(void)) {
     new_ult->context = malloc(sizeof(ucontext_t));
 
     // Gets the current context as a reference, to be overridden
@@ -119,11 +119,11 @@ void ult1000_th_create_context(struct TCB* new_ult, void (*f)(void)) {
     new_ult->context->uc_link = 0;
     new_ult->context->uc_stack.ss_sp = malloc(STACK_SIZE);
     new_ult->context->uc_stack.ss_size = STACK_SIZE;
-    makecontext(new_ult->context, (void*)&ult1000_th_wrapper, 1, f);
+    makecontext(new_ult->context, (void*)&th_wrapper, 1, f);
 }
 
 /* Enqueues the sent TCB */
-void ult1000_enqueue(struct TCB* ult) {
+void lib_enqueue(struct TCB* ult) {
     ult->state = READY;
 
     /* If there are no ready ULTs */
@@ -142,13 +142,13 @@ void ult1000_enqueue(struct TCB* ult) {
 }
 
 /* Initializes the library to listen SIGALRM */
-void ult1000_round_robin_init() {
+void lib_round_robin_init() {
     if(QUANTUM == 0) return;
 
     struct sigaction action;
 
     /* Set up the structure to specify the action. */
-    action.sa_handler = (void*) ult1000_end_of_quantum_handler;
+    action.sa_handler = (void*) lib_end_of_quantum_handler;
     action.sa_flags = SA_NODEFER;
     sigemptyset(&action.sa_mask);
 
@@ -159,20 +159,20 @@ void ult1000_round_robin_init() {
 }
 
 /* Handles the end of a quantum */
-void ult1000_end_of_quantum_handler() {
-    printf("I am ult number %d switching context \n", ult1000_th_get_tid());
+void lib_end_of_quantum_handler() {
+    printf("I am ult number %d switching context \n", th_get_tid());
     alarm(QUANTUM);
-    ult1000_th_yield();
-    printf("Restarting ult number %d\n", ult1000_th_get_tid());
+    th_yield();
+    printf("Restarting ult number %d\n", th_get_tid());
 }
 
 /* Returns the running thread id */
-int ult1000_th_get_tid(void) {
+int th_get_tid(void) {
     return current_ult->id;
 }
 
 /* Writes administrative info of a TCB */
-void ult1000_write_TCB(struct TCB* tcb, int id, enum State state) {
+void lib_write_TCB(struct TCB* tcb, int id, enum State state) {
     tcb->state = state;
     tcb->id = id;
     tcb->next = NULL;
@@ -182,25 +182,25 @@ void ult1000_write_TCB(struct TCB* tcb, int id, enum State state) {
 }
 
 /* Prints a message */
-void ult1000_log(char *message) {
+void lib_log(char *message) {
     if (VERBOSE) {
         printf("\n** %s **\n\n", message);
     }
 }
 
 /* Checks if a ult is the main thread */
-bool ult1000_is_main_thread(struct TCB* ult) {
+bool lib_is_main_thread(struct TCB* ult) {
     return ult == &ults[0];
 }
 
 /* Returns current time */
-int ult1000_get_time() {
+int lib_get_time() {
     return (int)time(NULL);
 }
 
 /* Saves a summary of the next burst */
-void ult1000_summarize_burst() {
-    int last_burst = ult1000_get_time() - current_ult->burst_start;
+void lib_summarize_burst() {
+    int last_burst = lib_get_time() - current_ult->burst_start;
     current_ult->execution_time += last_burst;
     current_ult->last_burst = last_burst;
 }
