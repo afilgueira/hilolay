@@ -1,6 +1,6 @@
-# Threadminator
+# Hilolay
 
-Tiny user level threads library, for education purposes. The library names are based on T1000, but I expect to find a better name soon :)
+Hilolay (pronounced "Hilo Light") is a tiny user level (AKA light, AKA green) threads library, for education purposes.
 
 ## How can I run it?
 
@@ -11,32 +11,31 @@ Tiny user level threads library, for education purposes. The library names are b
 
 This is still a little green (pun intended), but for now:
 - `ults.c` is the main project
-- `ult1000_th_context_switch.S` is an assembly function that switches the context between two ULTs.
-- `threadminator/threadminator.c` is the actual library. It's supposed to contain all the code related to ULTs administration. The naming convention is `ult1000_func` for functions related to the library behavior, and `ult1000_th_func` for thread functions. I'm eager to find a better one, submit an issue!
+- `hilolay/hilolay.c` is the actual library. It's supposed to contain all the code related to ULTs administration. The naming convention is `lib_func` for functions related to the library behavior, and `th_func` for thread functions. I'm eager to find a better one, submit an issue!
 - To document the code, please use `/* */`. To comment a few lines, please use `//` (and explain why is commented).
 
 A small example of code:
 
 ```
-#include "threadminator/threadminator.h"
+#include "hilolay/hilolay.h"
 
 void func() {
     puts('Do you have a photograph of John?');
 
     /* In case you want to make the library scheduling work */
-    ult1000_th_yield();
+    th_yield();
 }
 
 
 int main(void) {
     /* Inits the library */
-    ult1000_init();
+    lib_init();
 
     /* Creates a thread that will run func. Right now, you can create up to 49 threads (50, including main). */
-    ult1000_th_create(func);
+    th_create(func);
 
     /* Finishes the thread. The execution of the other threads won't stop until they finish */
-    ult1000_th_return(0);
+    th_return(0);
 }
 
 ```
