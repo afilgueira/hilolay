@@ -1,15 +1,8 @@
-#include "hilolay/hilolay.h"
-
-
-void test3() {
-    // Memory leak
-    void* mem = malloc(5000000);
-}
+#include "../hilolay/hilolay.h"
 
 
 void recursiva(int cant) {
     if(cant > 0) recursiva(cant - 1);
-    // th_create(test3);
 }
 
 void test1() {
