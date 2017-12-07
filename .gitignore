@@ -55,5 +55,5 @@ dkms.conf
 ults
 
 # CLion files
-.idea/*
-cmake-build-debug/*
+*/.idea/*
+*/cmake-build-debug/*
